@@ -2,7 +2,8 @@ from fastai.structured import *
 from fastai.column_data import *
 np.set_printoptions(threshold=50, edgeitems=50)
 
-PATH = "/Users/edwizzle/Developer/fastai_v2/data/rossmann/"
+#PATH = "/Users/edwizzle/Developer/fastai_v2/data/rossmann/"
+PATH = "/home/edwin/Datasets/rossman/"
 
 def concat_csvs(dirname):
     path = f'{PATH}{dirname}'
