@@ -78,3 +78,48 @@ joined = joined.merge(trend_de, 'left', ["Year", "Week"], suffixes=('', '_DE'))
 joined_test = joined_test.merge(trend_de, 'left', ["Year", "Week"], suffixes=('', '_DE'))
 len(joined[joined.trend_DE.isnull()]), len(joined_test[joined_test.trend_DE.isnull()])
 
+joined = join_df(joined, weather, ["State", "Date"])
+joined_test = join_df(joined_test, weather, ["State", "Date"])
+len(joined[joined.Mean_TemperatureC.isnull()]), len(joined_test[joined_test.Mean_TemperatureC.isnull()])
+
+for df in (joined, joined_test):
+    for c in df.columns:
+        if c.endswith('_y'):
+            if c in df.columns: df.drop(c, inplace=True, axis=1)
+
+for df in (joined, joined_test):
+    df['CompetitionOpenSinceYear'] = df.CompetitionOpenSinceYear.fillna(1900).astype(np.int32)
+    df['CompetitionOpenSinceMonth'] = df.CompetitionOpenSinceMonth.fillna(1).astype(np.int32)
+    df['Promo2SinceYear'] = df.Promo2SinceYear.fillna(1900).astype(np.int32)
+    df['Promo2SinceWeek'] = df.Promo2SinceWeek.fillna(1).astype(np.int32)
+
+for df in (joined, joined_test):
+    df["CompetitionOpenSince"] = pd.to_datetime(dict(year=df.CompetitionOpenSinceYear,
+                                                     month=df.CompetitionOpenSinceMonth, day=15))
+    df["CompetitionDaysOpen"] = df.Date.subtract(df.CompetitionOpenSince).dt.days
+
+for df in (joined,joined_test):
+    df.loc[df.CompetitionDaysOpen<0, "CompetitionDaysOpen"] = 0
+    df.loc[df.CompetitionOpenSinceYear<1990, "CompetitionDaysOpen"] = 0
+
+for df in (joined,joined_test):
+    df["CompetitionMonthsOpen"] = df["CompetitionDaysOpen"]//30
+    df.loc[df.CompetitionMonthsOpen>24, "CompetitionMonthsOpen"] = 24
+joined.CompetitionMonthsOpen.unique()
+
+for df in (joined,joined_test):
+    df["Promo2Since"] = pd.to_datetime(df.apply(lambda x: Week(
+        x.Promo2SinceYear, x.Promo2SinceWeek).monday(), axis=1).astype(pd.datetime))
+    df["Promo2Days"] = df.Date.subtract(df["Promo2Since"]).dt.days
+
+for df in (joined,joined_test):
+    df.loc[df.Promo2Days<0, "Promo2Days"] = 0
+    df.loc[df.Promo2SinceYear<1990, "Promo2Days"] = 0
+    df["Promo2Weeks"] = df["Promo2Days"]//7
+    df.loc[df.Promo2Weeks<0, "Promo2Weeks"] = 0
+    df.loc[df.Promo2Weeks>25, "Promo2Weeks"] = 25
+    df.Promo2Weeks.unique()
+
+
+joined.to_feather(f'{PATH}joined')
+joined_test.to_feather(f'{PATH}joined_test')
